@@ -1,12 +1,9 @@
-import os
-os.environ['TF_USE_LEGACY_KERAS'] = '1' # KUNCI ANTI-ERROR: Paksa pakai Keras versi 2!
-
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
 
-# Konfigurasi Tampilan Web (Ditambah layout "centered" biar rapi di HP)
+# Konfigurasi Tampilan Web
 st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️", layout="centered")
 
 # Header UI
@@ -17,49 +14,38 @@ st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** (mudah
 
 @st.cache_resource
 def load_model():
-    # Menggunakan compile=False untuk bypass konfigurasi optimizer yang tidak diperlukan
+    # Load model murni tanpa embel-embel legacy
     return tf.keras.models.load_model('model_sampah.h5', compile=False)
 
-# Memuat model dengan pengamanan Try-Except
 try:
     model = load_model()
 except Exception as e:
-    st.error(f"Gagal memuat model. Pastikan file 'model_sampah.h5' sudah terupload di GitHub. Error: {e}")
+    st.error(f"Gagal memuat model. Error: {e}")
     st.stop()
 
 # Area Upload Gambar
 uploaded_file = st.file_uploader("📸 Upload foto sampah di sini (JPG/PNG)...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # PERBAIKAN 1: Convert gambar ke RGB secara paksa untuk menghindari error PNG 4-Channel (RGBA)
+    # Convert gambar ke RGB untuk mencegah error PNG
     image = Image.open(uploaded_file).convert('RGB')
-    
-    # Tampilkan gambar yang diupload
     st.image(image, caption='Gambar yang akan dianalisis', use_column_width=True)
     
     with st.spinner('🤖 AI sedang mengekstrak fitur gambar...'):
-        # Preprocessing gambar (Wajib 100% sama dengan proses ImageDataGenerator di Colab)
-        img = image.resize((150, 150)) # Ubah ukuran ke 150x150
+        img = image.resize((150, 150))
         img_array = tf.keras.preprocessing.image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0) # Tambahkan dimensi batch (1, 150, 150, 3)
-        img_array = img_array / 255.0 # Normalisasi piksel 0-1 (rescale)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = img_array / 255.0 
         
-        # Proses Prediksi
         predictions = model.predict(img_array)
-        
-        # PERBAIKAN 2: Sesuai abjad folder Kaggle ('O' duluan baru 'R')
-        # Maka Index 0 = Organik, Index 1 = Anorganik
         class_names = ['Organik', 'Anorganik']
         
-        # Mengambil nilai prediksi tertinggi
         predicted_index = np.argmax(predictions)
         predicted_class = class_names[predicted_index]
         confidence = np.max(predictions) * 100
         
-        # Tampilkan Hasil dengan UI yang dipercantik
         st.markdown("---")
         
-        # Pisahkan warna notifikasi berdasarkan jenis sampah
         if predicted_class == 'Organik':
             st.success(f"### 🍃 Hasil Deteksi: **{predicted_class}**")
             st.caption("💡 **Saran:** Buang ke tempat sampah kompos. Sampah ini mudah terurai secara alami (sisa makanan, sayur, dedaunan).")
