@@ -8,10 +8,23 @@ st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️")
 st.title("♻️ Sistem Klasifikasi Sampah AI")
 st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** dan **Anorganik** menggunakan Convolutional Neural Network (CNN).")
 
-# Fungsi untuk memuat model (di-cache agar tidak loading terus-menerus)
+# Trik Anti-Error: Bangun kerangka modelnya di sini, lalu masukkan bobotnya!
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model('model_sampah.h5', compile=False)
+    model = tf.keras.models.Sequential([
+        tf.keras.Input(shape=(150, 150, 3)),
+        tf.keras.layers.Conv2D(32, (3,3), activation="relu"),
+        tf.keras.layers.MaxPooling2D(2,2),
+        tf.keras.layers.Conv2D(64, (3,3), activation="relu"),
+        tf.keras.layers.MaxPooling2D(2,2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dense(2, activation="softmax")
+    ])
+    
+    # Hanya me-load bobotnya saja (sangat aman dari error)
+    model.load_weights('model_sampah.h5')
+    return model
 
 model = load_model()
 
