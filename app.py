@@ -1,3 +1,6 @@
+import os
+os.environ['TF_USE_LEGACY_KERAS'] = '1' # KUNCI ANTI-ERROR: Paksa pakai Keras versi 2!
+
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
@@ -8,25 +11,11 @@ st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️")
 st.title("♻️ Sistem Klasifikasi Sampah AI")
 st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** dan **Anorganik** menggunakan Convolutional Neural Network (CNN).")
 
-# Trik Anti-Error: Susunan layer disamakan PERSIS dengan di Google Colab / Proposal
 @st.cache_resource
 def load_model():
-    model = tf.keras.models.Sequential([
-        # Kita kembalikan Input sebagai layer mandiri seperti di proposal
-        tf.keras.layers.InputLayer(shape=(150, 150, 3)), 
-        tf.keras.layers.Conv2D(32, (3,3), activation="relu"),
-        tf.keras.layers.MaxPooling2D(2,2),
-        tf.keras.layers.Conv2D(64, (3,3), activation="relu"),
-        tf.keras.layers.MaxPooling2D(2,2),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation="relu"),
-        tf.keras.layers.Dense(2, activation="softmax")
-    ])
-    
-    # Load bobotnya
-    model.load_weights('model_sampah.h5')
-    return model
-    
+    # Karena kita sudah pakai mode Legacy, kita bisa langsung baca file utuhnya!
+    return tf.keras.models.load_model('model_sampah.h5', compile=False)
+
 model = load_model()
 
 # Area Upload Gambar
