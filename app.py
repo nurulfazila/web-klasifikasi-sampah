@@ -11,7 +11,7 @@ st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** dan **
 # Fungsi untuk memuat model (di-cache agar tidak loading terus-menerus)
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model('model_sampah.keras', compile=False)
+    return tf.keras.models.load_model('model_sampah.h5', compile=False)
 
 model = load_model()
 
