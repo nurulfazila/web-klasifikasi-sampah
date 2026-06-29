@@ -8,11 +8,12 @@ st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️")
 st.title("♻️ Sistem Klasifikasi Sampah AI")
 st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** dan **Anorganik** menggunakan Convolutional Neural Network (CNN).")
 
-# Trik Anti-Error: Bangun kerangka modelnya di sini, lalu masukkan bobotnya!
+# Trik Anti-Error: Susunan layer disamakan PERSIS dengan di Google Colab / Proposal
 @st.cache_resource
 def load_model():
     model = tf.keras.models.Sequential([
-        tf.keras.Input(shape=(150, 150, 3)),
+        # Kita kembalikan Input sebagai layer mandiri seperti di proposal
+        tf.keras.layers.InputLayer(shape=(150, 150, 3)), 
         tf.keras.layers.Conv2D(32, (3,3), activation="relu"),
         tf.keras.layers.MaxPooling2D(2,2),
         tf.keras.layers.Conv2D(64, (3,3), activation="relu"),
@@ -22,10 +23,10 @@ def load_model():
         tf.keras.layers.Dense(2, activation="softmax")
     ])
     
-    # Hanya me-load bobotnya saja (sangat aman dari error)
+    # Load bobotnya
     model.load_weights('model_sampah.h5')
     return model
-
+    
 model = load_model()
 
 # Area Upload Gambar
