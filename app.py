@@ -6,43 +6,65 @@ import tensorflow as tf
 from PIL import Image
 import numpy as np
 
-# Konfigurasi Tampilan Web
-st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️")
+# Konfigurasi Tampilan Web (Ditambah layout "centered" biar rapi di HP)
+st.set_page_config(page_title="Klasifikasi Sampah", page_icon="♻️", layout="centered")
+
+# Header UI
 st.title("♻️ Sistem Klasifikasi Sampah AI")
-st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** dan **Anorganik** menggunakan Convolutional Neural Network (CNN).")
+st.markdown("**Kelompok 6** | Deteksi Sampah Menggunakan Deep Learning (CNN)")
+st.write("---")
+st.write("Aplikasi ini dibuat untuk mengklasifikasikan sampah **Organik** (mudah terurai) dan **Anorganik** (sulit terurai) secara otomatis.")
 
 @st.cache_resource
 def load_model():
-    # Karena kita sudah pakai mode Legacy, kita bisa langsung baca file utuhnya!
+    # Menggunakan compile=False untuk bypass konfigurasi optimizer yang tidak diperlukan
     return tf.keras.models.load_model('model_sampah.h5', compile=False)
 
-model = load_model()
+# Memuat model dengan pengamanan Try-Except
+try:
+    model = load_model()
+except Exception as e:
+    st.error(f"Gagal memuat model. Pastikan file 'model_sampah.h5' sudah terupload di GitHub. Error: {e}")
+    st.stop()
 
 # Area Upload Gambar
-uploaded_file = st.file_uploader("Upload foto sampah di sini...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📸 Upload foto sampah di sini (JPG/PNG)...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Tampilkan gambar yang diupload
-    image = Image.open(uploaded_file)
-    st.image(image, caption='Gambar yang diunggah', use_column_width=True)
+    # PERBAIKAN 1: Convert gambar ke RGB secara paksa untuk menghindari error PNG 4-Channel (RGBA)
+    image = Image.open(uploaded_file).convert('RGB')
     
-    with st.spinner('AI sedang menganalisis gambar...'):
-        # Preprocessing gambar (Samakan dengan proses di Colab)
+    # Tampilkan gambar yang diupload
+    st.image(image, caption='Gambar yang akan dianalisis', use_column_width=True)
+    
+    with st.spinner('🤖 AI sedang mengekstrak fitur gambar...'):
+        # Preprocessing gambar (Wajib 100% sama dengan proses ImageDataGenerator di Colab)
         img = image.resize((150, 150)) # Ubah ukuran ke 150x150
         img_array = tf.keras.preprocessing.image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0) # Tambahkan dimensi batch
-        img_array = img_array / 255.0 # Normalisasi 0-1
+        img_array = np.expand_dims(img_array, axis=0) # Tambahkan dimensi batch (1, 150, 150, 3)
+        img_array = img_array / 255.0 # Normalisasi piksel 0-1 (rescale)
         
         # Proses Prediksi
         predictions = model.predict(img_array)
         
-        # Penentuan Kelas (Asumsi urutan folder alfabet: 0 = Anorganik, 1 = Organik)
-        class_names = ['Anorganik', 'Organik']
+        # PERBAIKAN 2: Sesuai abjad folder Kaggle ('O' duluan baru 'R')
+        # Maka Index 0 = Organik, Index 1 = Anorganik
+        class_names = ['Organik', 'Anorganik']
         
         # Mengambil nilai prediksi tertinggi
-        predicted_class = class_names[np.argmax(predictions)]
+        predicted_index = np.argmax(predictions)
+        predicted_class = class_names[predicted_index]
         confidence = np.max(predictions) * 100
         
-        # Tampilkan Hasil
-        st.success(f"### Hasil Deteksi: {predicted_class}")
-        st.info(f"Tingkat Keyakinan AI: {confidence:.2f}%")
+        # Tampilkan Hasil dengan UI yang dipercantik
+        st.markdown("---")
+        
+        # Pisahkan warna notifikasi berdasarkan jenis sampah
+        if predicted_class == 'Organik':
+            st.success(f"### 🍃 Hasil Deteksi: **{predicted_class}**")
+            st.caption("💡 **Saran:** Buang ke tempat sampah kompos. Sampah ini mudah terurai secara alami (sisa makanan, sayur, dedaunan).")
+        else:
+            st.info(f"### 🥫 Hasil Deteksi: **{predicted_class}**")
+            st.caption("💡 **Saran:** Buang ke tempat sampah daur ulang. Sampah ini sulit terurai dan bisa dimanfaatkan kembali (plastik, kaca, logam).")
+            
+        st.write(f"**Tingkat Keyakinan AI:** {confidence:.2f}%")
